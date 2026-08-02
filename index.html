@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Where does value actually live? : Civic Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+
+:root{
+  --paper:#EDEEE9;
+  --paper-2:#E4E6DF;
+  --paper-3:#D9DCD3;
+  --ink:#14201D;
+  --ink-soft:#4C574F;
+  --ink-faint:#78827A;
+  --stamp:#4E3A8C;
+  --stamp-wash:rgba(78,58,140,.09);
+  --stamp-line:rgba(78,58,140,.32);
+  --carbon-blue:#9DB6C8;
+  --carbon-pink:#DDB2AC;
+  --carbon-green:#AFC5A8;
+  --rule:#C3C7BC;
+  --rule-soft:#D5D8CE;
+  --green:#2C6349;
+  --amber:#8A6A16;
+  --maxw:1080px;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Newsreader',Georgia,serif;
+  font-size:18px;
+  line-height:1.62;
+  font-weight:400;
+  -webkit-font-smoothing:antialiased;
+  background-image:
+    repeating-linear-gradient(0deg,rgba(20,32,29,.014) 0 1px,transparent 1px 3px);
+}
+h1,h2,h3,h4{font-family:'Bricolage Grotesque',sans-serif;font-weight:700;line-height:1.06;margin:0;letter-spacing:-.02em;}
+p{margin:0 0 1em;}
+a{color:var(--stamp);text-decoration:none;border-bottom:1px solid var(--stamp-line);}
+a:hover{background:var(--stamp-wash);}
+:focus-visible{outline:2.5px solid var(--stamp);outline-offset:3px;}
+
+.mono{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:500;}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px;}
+
+/* ---------- sticky bar ---------- */
+.bar{
+  position:sticky;top:0;z-index:60;
+  background:rgba(237,238,233,.93);
+  backdrop-filter:blur(9px);
+  border-bottom:1px solid var(--rule);
+}
+.bar-in{max-width:var(--maxw);margin:0 auto;padding:9px 28px;display:flex;align-items:center;gap:18px;justify-content:space-between;}
+.bar-id{color:var(--ink-faint);}
+.bar-id b{color:var(--ink);font-weight:600;}
+.toggle{display:flex;align-items:center;gap:9px;cursor:pointer;user-select:none;border:1px solid var(--stamp-line);padding:5px 11px;border-radius:2px;background:transparent;color:var(--stamp);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:500;}
+.toggle:hover{background:var(--stamp-wash);}
+.sw{width:26px;height:13px;border:1px solid var(--stamp-line);border-radius:9px;position:relative;flex:none;}
+.sw::after{content:"";position:absolute;top:1px;left:1px;width:9px;height:9px;border-radius:50%;background:var(--stamp-line);transition:.22s;}
+body.reveal .sw{background:var(--stamp-wash);}
+body.reveal .sw::after{left:14px;background:var(--stamp);}
+
+/* ---------- hero ---------- */
+.hero{padding:74px 0 56px;border-bottom:2px solid var(--ink);}
+.hero .eyebrow{color:var(--ink-faint);margin-bottom:26px;}
+.hero h1{font-size:clamp(38px,7.2vw,80px);font-weight:800;letter-spacing:-.035em;max-width:15ch;}
+.hero h1 em{font-style:normal;color:var(--stamp);}
+.thesis{
+  margin-top:38px;max-width:60ch;font-size:clamp(19px,2.3vw,24px);line-height:1.5;color:var(--ink);
+  border-left:3px solid var(--stamp);padding-left:20px;
+}
+.hero-meta{margin-top:44px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);}
+.hm{background:var(--paper);padding:13px 15px;}
+.hm .k{color:var(--ink-faint);display:block;margin-bottom:5px;}
+.hm .v{font-size:15px;line-height:1.35;}
+
+/* ---------- sections ---------- */
+section{padding:62px 0;border-bottom:1px solid var(--rule);scroll-margin-top:58px;}
+.sechead{display:flex;gap:20px;align-items:baseline;margin-bottom:14px;flex-wrap:wrap;}
+.secno{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:var(--stamp);letter-spacing:.1em;padding-top:6px;flex:none;}
+section h2{font-size:clamp(26px,4vw,42px);letter-spacing:-.028em;max-width:20ch;}
+.standfirst{max-width:64ch;font-size:19px;color:var(--ink-soft);margin:16px 0 34px;}
+.body-col{max-width:64ch;}
+
+/* ---------- claim stamps ---------- */
+.claim{position:relative;border-left:2px solid var(--rule-soft);padding-left:16px;margin:22px 0;transition:.25s;}
+.claim .tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;padding:2px 7px;border:1px solid currentColor;border-radius:1px;margin-bottom:7px;}
+.claim[data-s="confirmed"] .tag{color:var(--green);}
+.claim[data-s="assumption"] .tag{color:var(--stamp);}
+.claim[data-s="open"] .tag{color:var(--amber);}
+.claim p:last-child{margin-bottom:0;}
+body.reveal .claim[data-s="assumption"]{border-left-color:var(--stamp);background:var(--stamp-wash);padding:12px 16px;margin-left:-0px;}
+body.reveal .claim[data-s="open"]{border-left-color:var(--amber);}
+
+/* ---------- OECD bars ---------- */
+.oecd{display:grid;grid-template-columns:1fr 1fr;gap:34px;align-items:start;margin-top:8px;}
+.pyr{display:flex;flex-direction:column;gap:3px;}
+.pyr-row{display:grid;grid-template-columns:1fr auto 1fr;gap:0;align-items:stretch;}
+.pyr-l{background:var(--paper-2);border:1px solid var(--rule);padding:9px 12px;font-size:14px;line-height:1.3;display:flex;align-items:center;}
+.pyr-mid{width:5px;background:var(--stamp);opacity:.18;}
+.pyr-r{background:transparent;border:1px dashed var(--stamp-line);padding:9px 12px;font-size:14px;line-height:1.3;display:flex;align-items:center;color:var(--stamp);}
+.pyr-cap{margin-top:12px;}
+
+/* ---------- permit vs licence cards ---------- */
+.docs{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin:12px 0 6px;}
+.doc{background:#F4F5F0;border:1px solid var(--ink);position:relative;padding:0;box-shadow:5px 5px 0 var(--paper-3);}
+.doc.lic{box-shadow:5px 5px 0 var(--carbon-blue);}
+.doc-top{border-bottom:1px solid var(--ink);padding:11px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.doc-top .t{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:20px;letter-spacing:-.02em;}
+.doc-body{padding:16px 18px 20px;}
+.doc-q{font-size:17px;font-style:italic;color:var(--stamp);margin-bottom:14px;line-height:1.4;}
+.fields{border-top:1px solid var(--rule-soft);}
+.f{display:grid;grid-template-columns:82px 1fr;gap:10px;padding:7px 0;border-bottom:1px solid var(--rule-soft);font-size:14.5px;line-height:1.35;}
+.f .fk{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);padding-top:3px;}
+.doc-eg{margin-top:14px;padding-top:12px;border-top:1px dashed var(--rule);font-size:14.5px;line-height:1.45;}
+.doc-eg b{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);display:block;margin-bottom:5px;font-weight:500;}
+
+.sobut{margin-top:30px;background:var(--ink);color:var(--paper);padding:24px 26px;max-width:none;}
+.sobut .mono{color:var(--carbon-blue);display:block;margin-bottom:9px;}
+.sobut p{margin:0;font-size:19px;line-height:1.5;max-width:70ch;}
+.sobut b{color:#fff;font-weight:600;}
+
+/* ---------- asset families ---------- */
+.fam{margin-top:14px;}
+.fam-h{display:flex;align-items:baseline;gap:12px;border-bottom:2px solid var(--ink);padding-bottom:6px;margin:30px 0 0;}
+.fam-h .n{font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px;letter-spacing:-.02em;}
+.fam-h .d{font-size:14.5px;color:var(--ink-soft);}
+.assets{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1px;background:var(--rule);border-left:1px solid var(--rule);border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);}
+.as{background:var(--paper);padding:15px 16px 17px;}
+.as .num{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--stamp);letter-spacing:.1em;font-weight:600;}
+.as h4{font-size:17px;margin:5px 0 7px;letter-spacing:-.015em;}
+.as p{font-size:14.5px;line-height:1.45;color:var(--ink-soft);margin:0 0 9px;}
+.as .who{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint);border-top:1px dotted var(--rule);padding-top:8px;line-height:1.5;}
+.as .who i{font-style:normal;color:var(--stamp);}
+.as.new{background:#F4F2F8;}
+.as.new::after{content:"proposed addition";display:block;margin-top:8px;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--stamp);}
+
+@media(max-width:820px){
+  .oecd,.docs{grid-template-columns:1fr;gap:22px;}
+  section{padding:46px 0;}
+  .hero{padding:52px 0 42px;}
+  body{font-size:17px;}
+  .wrap{padding:0 20px;}
+  .bar-in{padding:8px 20px;gap:10px;}
+  .bar-id{display:none;}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;}html{scroll-behavior:auto;}}
+/* ---------- chain diagram ---------- */
+.chain{margin:10px 0 0;border:1px solid var(--ink);background:#F4F5F0;}
+.chain-row{display:grid;grid-template-columns:132px 1fr;border-bottom:1px solid var(--rule);}
+.chain-row:last-child{border-bottom:none;}
+.chain-lab{background:var(--paper-2);border-right:1px solid var(--rule);padding:14px 13px;display:flex;flex-direction:column;justify-content:center;gap:4px;}
+.chain-lab .z{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-faint);}
+.chain-lab .n{font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:15px;line-height:1.15;letter-spacing:-.015em;}
+.chain-c{padding:14px 18px;display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;}
+.chain-c p{margin:0;font-size:15px;line-height:1.45;flex:1 1 260px;min-width:0;}
+.pill{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;padding:4px 9px;border-radius:99px;white-space:nowrap;font-weight:500;}
+.pill.local{background:var(--carbon-blue);color:#16303F;}
+.pill.commons{background:var(--carbon-green);color:#1D3318;}
+.pill.owned{background:var(--stamp);color:#fff;}
+.chain-row.r1{background:#EFF3F5;}
+.chain-row.r4,.chain-row.r5{background:#F2F0F7;}
+
+/* ---------- commons block ---------- */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:start;}
+.bigq{font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:clamp(21px,3vw,29px);line-height:1.18;letter-spacing:-.025em;margin:0 0 18px;}
+.answer{background:var(--stamp);color:#fff;padding:26px 28px;}
+.answer .mono{color:var(--carbon-blue);display:block;margin-bottom:11px;}
+.answer p{font-size:19px;line-height:1.48;margin:0 0 12px;}
+.answer p:last-child{margin:0;}
+.answer b{font-weight:600;}
+
+/* ---------- carbon licence layers ---------- */
+.carbons{margin-top:12px;display:flex;flex-direction:column;gap:16px;}
+.carbon{border:1px solid var(--ink);position:relative;padding:0;background:#F4F5F0;}
+.carbon.l1{box-shadow:6px 6px 0 var(--carbon-green);}
+.carbon.l2{box-shadow:6px 6px 0 var(--carbon-blue);}
+.carbon.l3{box-shadow:6px 6px 0 var(--carbon-pink);}
+.carbon-h{display:flex;justify-content:space-between;align-items:baseline;gap:14px;flex-wrap:wrap;border-bottom:1px solid var(--ink);padding:12px 20px;}
+.carbon-h h3{font-size:21px;letter-spacing:-.022em;}
+.carbon-h .mode{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.11em;text-transform:uppercase;font-weight:600;}
+.carbon.l1 .mode{color:var(--green);}
+.carbon.l2 .mode{color:var(--stamp);}
+.carbon.l3 .mode{color:#8A4230;}
+.carbon-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:1px;background:var(--rule-soft);}
+.cg{background:#F4F5F0;padding:12px 16px 14px;}
+.cg .k{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);display:block;margin-bottom:5px;}
+.cg .v{font-size:14.5px;line-height:1.42;}
+.carbon-note{padding:12px 20px 16px;border-top:1px dashed var(--rule);font-size:15px;line-height:1.5;}
+.carbon-note b{color:var(--stamp);font-weight:600;}
+
+/* ---------- lawyer answer ---------- */
+.quotebox{border:2px solid var(--ink);padding:22px 26px;margin-bottom:32px;background:#F4F5F0;}
+.quotebox p{font-size:clamp(18px,2.4vw,23px);line-height:1.42;font-style:italic;margin:0 0 10px;}
+.quotebox .attr{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);margin:0;font-style:normal;}
+.steps{counter-reset:st;display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);}
+.st{background:var(--paper);padding:16px 20px;display:grid;grid-template-columns:34px 1fr;gap:16px;align-items:start;}
+.st::before{counter-increment:st;content:counter(st);font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#fff;background:var(--stamp);width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:50%;margin-top:2px;}
+.st h4{font-size:17px;margin:0 0 5px;letter-spacing:-.015em;}
+.st p{margin:0;font-size:15.5px;line-height:1.48;color:var(--ink-soft);}
+.st p b{color:var(--ink);font-weight:600;}
+
+/* ---------- typology explorer ---------- */
+.tabs{display:flex;gap:0;flex-wrap:wrap;border-bottom:2px solid var(--ink);margin-top:8px;}
+.tab{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-weight:500;padding:11px 16px;background:transparent;border:1px solid var(--rule);border-bottom:none;cursor:pointer;color:var(--ink-soft);margin-right:4px;border-radius:2px 2px 0 0;}
+.tab:hover{background:var(--paper-2);}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+.panel{display:none;border:1px solid var(--ink);border-top:none;background:#F4F5F0;}
+.panel.on{display:block;}
+.panel-h{padding:18px 22px 14px;border-bottom:1px solid var(--rule);}
+.panel-h .kind{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.11em;text-transform:uppercase;font-weight:600;color:var(--stamp);display:block;margin-bottom:6px;}
+.panel-h h3{font-size:22px;letter-spacing:-.022em;margin-bottom:8px;}
+.panel-h p{margin:0;font-size:16px;line-height:1.5;color:var(--ink-soft);max-width:66ch;}
+.panel-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1px;background:var(--rule-soft);}
+.pg{background:#F4F5F0;padding:14px 18px 16px;}
+.pg .k{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);display:block;margin-bottom:6px;}
+.pg .v{font-size:15px;line-height:1.45;}
+.pg .v em{font-style:normal;color:var(--stamp);}
+
+/* ---------- open questions ---------- */
+.qs{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:10px;}
+.q{background:var(--paper);padding:17px 20px;}
+.q .qh{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;margin-bottom:7px;}
+.q .qn{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--amber);letter-spacing:.09em;}
+.q h4{font-size:18px;letter-spacing:-.018em;}
+.q p{margin:0;font-size:15.5px;line-height:1.5;color:var(--ink-soft);max-width:76ch;}
+.q .owner{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);margin-top:9px;}
+
+/* ---------- companion docs ---------- */
+.docs3{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px;margin-top:12px;}
+.d3{border:1px solid var(--ink);background:#F4F5F0;padding:18px 20px 20px;display:flex;flex-direction:column;gap:9px;box-shadow:4px 4px 0 var(--paper-3);}
+.d3 .n{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--stamp);font-weight:600;}
+.d3 h4{font-size:18px;letter-spacing:-.02em;}
+.d3 p{margin:0;font-size:14.5px;line-height:1.45;color:var(--ink-soft);}
+.d3 .rd{font-size:14.5px;line-height:1.45;border-top:1px dashed var(--rule);padding-top:9px;margin-top:auto;}
+.d3 .rd b{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);display:block;margin-bottom:4px;font-weight:500;}
+.d3.self{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+.d3.self p,.d3.self .rd{color:#C8CFC9;}
+.d3.self .n{color:var(--carbon-blue);}
+.d3.self .rd b{color:var(--carbon-blue);}
+
+footer{padding:46px 0 60px;}
+.foot{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;color:var(--ink-faint);}
+
+@media(max-width:820px){
+  .split{grid-template-columns:1fr;gap:22px;}
+  .chain-row{grid-template-columns:1fr;}
+  .chain-lab{border-right:none;border-bottom:1px solid var(--rule);flex-direction:row;align-items:baseline;gap:10px;}
+  .tab{flex:1 1 auto;text-align:center;}
+}
+
+</style>
+</head>
+<body>
+<div class="bar">
+  <div class="bar-in">
+    <div class="mono bar-id"><b>Where does value live?</b> &nbsp;/&nbsp; Civic Ledger &nbsp;/&nbsp; business model research</div>
+    <button class="toggle" id="tg" aria-pressed="false"><span class="sw"></span> Show what is assumed</button>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="mono eyebrow">Civic Ledger · Dark Matter Labs · Business model research · August 2026</div>
+    <h1>Where does value <em>actually</em> live?</h1>
+    <div class="thesis">
+      Four companies whose real asset sits somewhere other than the thing they appear to sell. Read across them and a pattern appears that Civic Ledger can use: the product creates something durable as a byproduct of use, and that durable thing is where the money lives.
+    </div>
+    <div class="hero-meta">
+      <div class="hm"><span class="k mono">Document</span><span class="v">Two of three. Read after the position paper</span></div>
+      <div class="hm"><span class="k mono">Source</span><span class="v">WeSharing operating architecture v1.0, 26 June 2026</span></div>
+      <div class="hm"><span class="k mono">Status</span><span class="v">Working research, open to challenge</span></div>
+      <div class="hm"><span class="k mono">The claim</span><span class="v">Authority is the asset</span></div>
+    </div>
+  </div>
+</header>
+
+<section id="s1">
+  <div class="wrap">
+    <div class="sechead"><span class="secno">§01</span><h2>Four archetypes, and one we are building</h2></div>
+    <p class="standfirst">Each of these companies is widely misread. Select one to see the mistaken assumption, the asset actually being built, and where the money moves.</p>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" aria-selected="true" aria-controls="p1" id="t1">Airlines</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="p2" id="t2">Michelin</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="p3" id="t3">Gore-Tex</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="p4" id="t4">Stripe</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="p5" id="t5">Civic Ledger</button>
+    </div>
+
+    <div class="panel on" id="p1" role="tabpanel" aria-labelledby="t1">
+      <div class="panel-h"><span class="kind">American, Delta, United</span><h3>The asset is a currency</h3>
+      <p>Loyalty points are a privately minted currency. Banks, retailers and hotels buy that currency in bulk to hand to their own customers.</p></div>
+      <div class="panel-g">
+        <div class="pg"><span class="k">Widely assumed</span><span class="v">Revenue comes from selling flight tickets</span></div>
+        <div class="pg"><span class="k">Asset built</span><span class="v"><em>A private currency</em>, minted through the act of flying</span></div>
+        <div class="pg"><span class="k">Money flows</span><span class="v">Banks buy miles in bulk. AAdvantage generated $1.9bn profit in a year when flight operations lost money</span></div>
+        <div class="pg"><span class="k">Scale</span><span class="v">Delta SkyMiles valued around $28bn, exceeding Delta's market cap at points</span></div>
+      </div>
+    </div>
+
+    <div class="panel" id="p2" role="tabpanel" aria-labelledby="t2" hidden>
+      <div class="panel-h"><span class="kind">Tyre company, est. 1889</span><h3>The asset is epistemic authority</h3>
+      <p>The Guide runs at a loss by design. What it builds is the credibility that makes a Michelin star meaningful, and that credibility transfers to the tyre.</p></div>
+      <div class="panel-g">
+        <div class="pg"><span class="k">Widely assumed</span><span class="v">The Guide is a revenue product that sells guidebooks</span></div>
+        <div class="pg"><span class="k">Asset built</span><span class="v"><em>Epistemic authority</em>: the most trusted voice in fine dining</span></div>
+        <div class="pg"><span class="k">Money flows</span><span class="v">Tyres. The Guide is 0.1% of $30bn in tyre sales. Countries with an active Guide show roughly 3% higher purchase likelihood</span></div>
+        <div class="pg"><span class="k">Scale</span><span class="v">Guide costs 1.8% of marketing budget. Returns brand authority no competitor can buy</span></div>
+      </div>
+    </div>
+
+    <div class="panel" id="p3" role="tabpanel" aria-labelledby="t3" hidden>
+      <div class="panel-h"><span class="kind">W.L. Gore &amp; Associates</span><h3>The asset is a trusted standard</h3>
+      <p>Gore sets the certification process and the testing regime. Only approved manufacturers earn the tag, and the tag is what consumers look for before the brand.</p></div>
+      <div class="panel-g">
+        <div class="pg"><span class="k">Widely assumed</span><span class="v">Revenue comes from selling the membrane material</span></div>
+        <div class="pg"><span class="k">Asset built</span><span class="v"><em>A trusted standard</em>, enforced through audit</span></div>
+        <div class="pg"><span class="k">Money flows</span><span class="v">Licensing fees from manufacturers wanting the tag. North Face, Patagonia, Nike and Arc'teryx all pay</span></div>
+        <div class="pg"><span class="k">Scale</span><span class="v">$4.5bn annual revenue, earned without owning a single jacket brand</span></div>
+      </div>
+    </div>
+
+    <div class="panel" id="p4" role="tabpanel" aria-labelledby="t4" hidden>
+      <div class="panel-h"><span class="kind">Payment infrastructure</span><h3>The asset is infrastructure dependency</h3>
+      <p>Every dollar of Stripe revenue represents roughly $280 in merchant sales flowing through its rails. Depth of integration is the moat.</p></div>
+      <div class="panel-g">
+        <div class="pg"><span class="k">Widely assumed</span><span class="v">Revenue is the transaction fee on each payment</span></div>
+        <div class="pg"><span class="k">Asset built</span><span class="v"><em>Infrastructure dependency</em>, deepened with every integration</span></div>
+        <div class="pg"><span class="k">Money flows</span><span class="v">Payments create the dependency. Billing, tax and identity are sold on top to locked-in clients</span></div>
+        <div class="pg"><span class="k">Scale</span><span class="v">$5.1bn revenue (2024). Headline fee 2.9% plus 30c. Real margin sits in layered subscriptions</span></div>
+      </div>
+    </div>
+
+    <div class="panel" id="p5" role="tabpanel" aria-labelledby="t5" hidden>
+      <div class="panel-h"><span class="kind">WeSharing · conditions-based civic permissioning</span><h3>The asset is a civic standard</h3>
+      <p>Every negotiated permission generates a tested condition. Every compliance record generates a trust signal. Accumulated across three countries, those records produce a defensible standard for how a good permission decision is made.</p></div>
+      <div class="panel-g">
+        <div class="pg"><span class="k">Widely assumed</span><span class="v">Revenue comes from charging users or cities a platform subscription</span></div>
+        <div class="pg"><span class="k">Asset built</span><span class="v"><em>A civic standard, plus the mark that proves conformance to it</em></span></div>
+        <div class="pg"><span class="k">Money flows</span><span class="v">B2G subscriptions, B2C fees and B2B data flow to the operating company. DML KR earns the protocol licence and stewardship fee, plus certification</span></div>
+        <div class="pg"><span class="k">The commons</span><span class="v">The conditions library and reasoning record stay open. Charging happens at the conformance layer</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="s2">
+  <div class="wrap">
+    <div class="sechead"><span class="secno">§02</span><h2>Value, asset, revenue: how the logic flows</h2></div>
+    <p class="standfirst">The same three-step move in every case. An activity happens. The activity leaves something durable behind. The durable thing is what people pay for.</p>
+    <div class="chain">
+      <div class="chain-row r1"><div class="chain-lab"><span class="z">Airlines</span><span class="n">People fly</span></div>
+        <div class="chain-c"><p><b>Asset:</b> a private currency, created through the loyalty record. <b>Revenue:</b> banks buy miles in bulk, whatever the flight margin.</p></div></div>
+      <div class="chain-row r2"><div class="chain-lab"><span class="z">Michelin</span><span class="n">Publish at a loss</span></div>
+        <div class="chain-c"><p><b>Asset:</b> epistemic authority, built through independent inspection. <b>Revenue:</b> tyre sales globally, lifted by the trust the Guide earns.</p></div></div>
+      <div class="chain-row r3"><div class="chain-lab"><span class="z">Gore-Tex</span><span class="n">Certify the use</span></div>
+        <div class="chain-c"><p><b>Asset:</b> a trusted standard, held through controlled approval. <b>Revenue:</b> licensing fees from manufacturers who want the tag.</p></div></div>
+      <div class="chain-row r5"><div class="chain-lab"><span class="z">Civic Ledger</span><span class="n">Negotiate permissions</span></div>
+        <div class="chain-c"><p><b>Assets:</b> an open conditions record, and the standard it produces. <b>Revenue:</b> protocol licence from each operating company, plus certification from anyone claiming conformance.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="s3">
+  <div class="wrap">
+    <div class="sechead"><span class="secno">§03</span><h2>The eight assets</h2></div>
+    <p class="standfirst">Four families, sorted by how each asset comes into being. Sorting them this way is what stops the asset conversation going in circles. The full argument sits in the position paper.</p>
+
+    <div class="fam">
+      <div class="fam-h"><span class="n">Family A · Generated by use</span><span class="d">Accrues automatically. Held in common.</span></div>
+      <div class="assets">
+        <div class="as"><div class="num">A1</div><h4>Conditions library</h4><p>Every tested condition attached to a permission: noise caps, hours, insurance thresholds, access duties.</p><div class="who">Holds the <i>what</i> · commons</div></div>
+        <div class="as"><div class="num">A2</div><h4>Reputation ledger</h4><p>Compliance history per actor, feeding future risk routing.</p><div class="who">Holds the <i>who</i> · commons</div></div>
+        <div class="as"><div class="num">A3</div><h4>Precedent and reasoning record</h4><p>Why a condition was attached, which objection produced it, and what the trade-off was.</p><div class="who">Holds the <i>why</i> · commons</div></div>
+      </div>
+    </div>
+
+    <div class="fam">
+      <div class="fam-h"><span class="n">Family B · Designed and held</span><span class="d">Built deliberately. Held by DML KR.</span></div>
+      <div class="assets">
+        <div class="as"><div class="num">B1</div><h4>Protocol licence</h4><p>The right to deploy the permissioning engine: business logic, risk routing, admin tools, playbook, brand.</p><div class="who">Revenue: <i>licence and stewardship fee</i></div></div>
+        <div class="as"><div class="num">B2</div><h4>Negotiation method</h4><p>The structured way a contested permission gets resolved. Transferable without the software.</p><div class="who">Revenue: <i>method licensing</i></div></div>
+      </div>
+    </div>
+
+    <div class="fam">
+      <div class="fam-h"><span class="n">Family C · Earned authority</span><span class="d">Accumulates only through use over years.</span></div>
+      <div class="assets">
+        <div class="as"><div class="num">C1</div><h4>Civic standard</h4><p>The defensible statement of how a good permission decision is made, derived from thousands of real ones.</p><div class="who">The <i>Gore-Tex</i> asset</div></div>
+        <div class="as new"><div class="num">C2</div><h4>Trust mark</h4><p>The visible sign that a permission was issued through a conforming process.</p><div class="who">Revenue: <i>certification fee</i></div></div>
+      </div>
+    </div>
+
+    <div class="fam">
+      <div class="fam-h"><span class="n">Family D · Derived product</span><span class="d">Made from the open record, sold as analysis.</span></div>
+      <div class="assets">
+        <div class="as"><div class="num">D1</div><h4>Policy intelligence</h4><p>Analysis sold to governments, insurers and researchers: which conditions fail, where friction concentrates, where risk rules run disproportionate to the risk.</p><div class="who">Sold <i>B2B</i></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="s4">
+  <div class="wrap">
+    <div class="sechead"><span class="secno">§04</span><h2>Value and asset are different things</h2></div>
+    <div class="split">
+      <div class="body-col">
+        <p><b>Value</b> is relational: what something is worth to someone. <b>Asset</b> is structural: what you hold or control that generates future returns.</p>
+        <div class="claim" data-s="confirmed">
+          <span class="tag">Position · updated</span>
+          <p>The conditions library has real value to planning authorities. Our position keeps it open rather than turning it into an asset through controlled access, because openness is what makes the pattern it produces credible.</p>
+        </div>
+        <div class="claim" data-s="confirmed">
+          <span class="tag">Position · updated</span>
+          <p>The asset therefore sits one layer up. The civic standard, and the mark that proves conformance to it, are what DML KR holds and charges for. The record underneath stays common.</p>
+        </div>
+      </div>
+      <div class="answer">
+        <span class="mono">The pattern, stated plainly</span>
+        <p><b>Airlines.</b> Seat is the occasion, miles are the asset.</p>
+        <p><b>Michelin.</b> Guide is the loss-leader, authority is the asset.</p>
+        <p><b>Gore-Tex.</b> Membrane is the technology, the standard is the asset.</p>
+        <p><b>Stripe.</b> Payment is the entry, dependency is the asset.</p>
+        <p><b>Civic Ledger.</b> Permission is the occasion, the open record builds the standard, and conformance to the standard is what earns.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="s5">
+  <div class="wrap">
+    <div class="sechead"><span class="secno">§05</span><h2>Documented revenue sequence</h2></div>
+    <p class="standfirst">From the WeSharing Korea operating architecture, 26 June 2026. Steps 1 to 6 are documented. Step 7 is the addition this round of work proposes.</p>
+    <div class="steps">
+      <div class="st"><div><h4>B2G subscriptions</h4><p>Local governments in Incheon, Yongin and Jeonnam pay an annual subscription to the operating company. <b>Target: three signed contracts by 31 December 2026.</b></p></div></div>
+      <div class="st"><div><h4>B2C transaction fees and membership</h4><p>Citizens and space users pay per transaction and by membership. Volume grows with city scale.</p></div></div>
+      <div class="st"><div><h4>B2B data services</h4><p>Living lab and policy data sold to governments, researchers and insurers. Inha University produces the knowledge layer.</p></div></div>
+      <div class="st"><div><h4>Module settlement</h4><p>Revenue flows out to tech module partners by volume: AI calls, DID credentials, payment transactions, maintenance.</p></div></div>
+      <div class="st"><div><h4>Protocol licence and stewardship fee</h4><p>The operating company pays DML KR for the protocol licence, permissioning engine, brand use and governance standard. <b>This is DML KR's primary revenue.</b></p></div></div>
+      <div class="st"><div><h4>Surplus sharing</h4><p>Net operating surplus, rather than gross revenue, distributed to partners and investors after a 12-month contribution review. Equity invitation follows.</p></div></div>
+      <div class="st"><div><h4>Certification against the standard</h4><p>Proposed. Anyone claiming conformance pays, including city systems and vendors that never run the software. <b>The only line that scales past our own deployments.</b></p></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="s6">
+  <div class="wrap">
+    <div class="sechead"><span class="secno">§06</span><h2>Open questions</h2></div>
+    <p class="standfirst">Five questions this research leaves standing. The first is partly answered by the architecture document. The rest are live.</p>
+    <div class="qs">
+      <div class="q"><div class="qh"><span class="qn">Q1</span><h4>Who owns conditions generated by three cities?</h4></div>
+        <p>Partly resolved. The architecture places core protocol IP with DML KR. The operating agreements still need to confirm whether conditions generated through city operation fall inside that, or sit with the city, or belong in the commons by default.</p>
+        <div class="owner">Session 4 · legal and licensing</div></div>
+      <div class="q"><div class="qh"><span class="qn">Q2</span><h4>What makes London and Melbourne pay?</h4></div>
+        <p>Korea is the first instance. The contractual mechanism obliging later instances to pay a licence fee to DML KR has to be designed now, ahead of each city being built.</p>
+        <div class="owner">Session 3 · entity design</div></div>
+      <div class="q"><div class="qh"><span class="qn">Q3</span><h4>Who owns Inha University's output?</h4></div>
+        <p>The B2B data service depends on Inha producing policy intelligence from the living lab. Whether that output belongs to Inha, to the cities or to DML KR determines whether this revenue stream is achievable at all.</p>
+        <div class="owner">Korea team · before December</div></div>
+      <div class="q"><div class="qh"><span class="qn">Q4</span><h4>Does the equity invitation hold partners?</h4></div>
+        <p>Contribution-based equity invitation after 12 months is a promising retention mechanism for tech module partners. Whether it holds London and Melbourne as contributing instances, rather than independent forks, remains untested.</p>
+        <div class="owner">Session 3</div></div>
+      <div class="q"><div class="qh"><span class="qn">Q5</span><h4>What licence fee applies to a non-commercial London?</h4></div>
+        <p>London has freedom to structure as a trust or a socially progressive institution. Same rate, concessionary rate, or a different form of contribution back to the protocol: all three are open.</p>
+        <div class="owner">Session 3 and 4</div></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot">
+    <div class="mono">Civic Ledger · Dark Matter Labs · Business model research · August 2026</div>
+    <div class="mono">Source: WeSharing platform operating architecture v1.0, 26 June 2026</div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var tg=document.getElementById('tg');
+  if(tg){tg.addEventListener('click',function(){
+    var on=document.body.classList.toggle('reveal');
+    tg.setAttribute('aria-pressed',on?'true':'false');
+    tg.lastChild.textContent=on?' Hide what is assumed':' Show what is assumed';});}
+  var tabs=[].slice.call(document.querySelectorAll('.tab'));
+  tabs.forEach(function(t,i){
+    t.addEventListener('click',function(){
+      tabs.forEach(function(o){o.setAttribute('aria-selected','false');
+        var p=document.getElementById(o.getAttribute('aria-controls'));p.classList.remove('on');p.hidden=true;});
+      t.setAttribute('aria-selected','true');
+      var p=document.getElementById(t.getAttribute('aria-controls'));p.classList.add('on');p.hidden=false;});
+    t.addEventListener('keydown',function(e){var n=null;
+      if(e.key==='ArrowRight')n=tabs[(i+1)%tabs.length];
+      if(e.key==='ArrowLeft')n=tabs[(i-1+tabs.length)%tabs.length];
+      if(n){e.preventDefault();n.focus();n.click();}});
+  });
+})();
+</script>
+</body>
+</html>
